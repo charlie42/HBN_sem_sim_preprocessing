@@ -127,7 +127,7 @@ def remove_domain_specific_stop_words(df):
 
     print('Removing domain-specific stop words...')
 
-    stop_words = ['score', 'tscore', 'rank', 'range', 'child', 'childs', 'past']
+    stop_words = ['score', 'tscore', 'rank', 'range', 'child', 'childs', 'past', 'raw', 'percentile', 'scaled']
 
     cleaned_items = []
 
@@ -141,9 +141,11 @@ def remove_domain_specific_stop_words(df):
     return df
 
 def remove_paraphrased(df):
+
+    print("Removing very similar items...")
     
     # https://www.sbert.net/examples/applications/paraphrase-mining/README.html
-    items = list(set(df[item_col]))
+    items = list(df[item_col])
 
     model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -157,13 +159,24 @@ def remove_paraphrased(df):
     df_paraphrases = pd.DataFrame(paraphrases, columns=['score', 'idx1', 'idx2'])
     print(df_paraphrases)
 
+    df = df.reset_index()
+
     # Print all rows where score > 0.95
-    print(df.iloc[df_paraphrases[df_paraphrases['score'] > 0.95]['idx2'].tolist()][item_col])
+    for _, row in df_paraphrases.iterrows():
+        if (row["score"] > 0.91) & (row["score"] < 0.93):
+            idx1 = row['idx1'].astype(int)
+            print(idx1, type(idx1))
+            idx2 = row['idx2'].astype(int)
+            print(df.iloc[idx1][item_col])
+            print(df.iloc[idx2][item_col])
+            print(row["score"])
 
     # Remove idx2 items if score >0.95
-    idx2_to_remove = df_paraphrases[df_paraphrases['score'] > 0.95]['idx2'].tolist()
+    idx2_to_remove = df_paraphrases[df_paraphrases['score'] > 0.92]['idx2'].tolist()
 
     df = df[~df.index.isin(idx2_to_remove)]
+
+    print(df.shape[0], 'rows remain')
 
     return df
 
@@ -196,6 +209,8 @@ df = remove_punctuation(df)
 df = remove_common_stop_words(df)
 
 df = remove_domain_specific_stop_words(df)
+
+df = drop_duplicates(df)
 
 df = remove_paraphrased(df)
 
