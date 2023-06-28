@@ -18,7 +18,8 @@ def read_data():
 def remove_assessments(df):
     # Remove PreInt... assessments (PreInt in datadic col)
 
-    assessments_to_remove = ["PreInt", "DailyMed", "Diagnosis_KSADS", "WHODAS_P", "WHODAS_SR", "Peds_Migraine", "WAIS", "WASI", "APQ", "NIH"]
+    assessments_to_remove = ["PreInt", "DailyMed", "Diagnosis_KSADS", "WHODAS_P", "WHODAS_SR", "Peds_Migraine", "APQ", "ESPAD", "ConsensusD",
+                              'MRI_Track', 'PBQ', 'Pegboard', 'Physical', 'PPVT', 'RemoteTask']
 
     for assessment in assessments_to_remove:
         print('Removing', assessment, '...')
@@ -29,7 +30,7 @@ def remove_assessments(df):
 
 def remove_domains(df):
 
-    domains_to_remove = ["Physical_Fitness_and_Status", "Language_Tasks", "Vision", "Neurologic_Function", "Medical_Status_Measures", "Cognitive_Testing", "Motor_Skills"]
+    domains_to_remove = ["Physical_Fitness_and_Status", "Vision", "Neurologic_Function", "Medical_Status_Measures"]
 
     for domain in domains_to_remove:
         print('Removing', domain, '...')
@@ -57,21 +58,8 @@ def make_lowercase(df):
 
 def remove_numbers(df):
     print('Removing numbers...')
-    
-    # Remove item numbers in the beginning of items like "1. " or "11. " or "111. " 
-    df[item_col] = df[item_col].str.replace('\d+\.\s', '', regex=True)
 
-    # Remove item numbers in the beginning of items like "1 " or "11 " or "111 "
-    df[item_col] = df[item_col].str.replace('\d+\s', '', regex=True)
-
-    # Remove item numbers in the end of items like "1a. " or "1a. "" or "11a. " or "111a. " 
-    df[item_col] = df[item_col].str.replace('\d+[a-z]\.\s', '', regex=True)
-    
-    # Special cases: remove "for 11-year olds: "
-    df[item_col] = df[item_col].str.replace('for \d+-year olds:\s', '', regex=True)
-
-    print('Items with numbers remaining:')
-    print(df[df[item_col].str.contains('\d', regex=True)][item_col].unique())
+    df[item_col] = df[item_col].str.replace('\d', '', regex=True)
 
     return df
 
@@ -127,7 +115,21 @@ def remove_domain_specific_stop_words(df):
 
     print('Removing domain-specific stop words...')
 
-    stop_words = ['score', 'tscore', 'rank', 'range', 'child', 'childs', 'past', 'raw', 'percentile', 'scaled']
+    stop_words = ['score', 'tscore', 'rank', 'range', 'raw', 'percentile', 'scaled', 'index',  'total', 'standard', 'sum', 'scores', 'scre', 'corrected', 'uncorrrected', 
+                        'age', 'item', 'count', 'rescored', 'uncorrected', 'breakoff', 'yes', 'subscale', 'disorders', 'average', 'domain', 'subdomain', 'descriptive', 
+                        'composite', 'diagnosis', 'specifier', 'criterion', 'invalid', 'completed', 'icd', "valid", "administration",
+
+                  'child', 'childs', 'i', 'you', 'she', 'her', 'he', 'his', 'him', 'they', 'them', 'their', 'we', 'our', 'us', 'me', 'my', 'mine', 'your', 'yours',
+
+                  'problem', 'problems', 'trouble', 'difficulty', 'deficit', 'complaints', 'behavior', 'difficulties', 'unable', 'able', 
+
+                  'frequency', 'frequently', 'easily', 'lot', 'past', 'often', 'day', 'certain', 'something', 'little', 'unusually', 'current', 'much', 'too', 'always', 
+                        'ever', 'unusual', 'usually', 'many', 'well', 'significant', 'overly', 'strong', 'per', 'almost', 'never', 'less', 'expected',
+
+                  'would', 'g', 'e', 'describe', 'etc', 'seems', 'try', 'get', 'gets', 'feel', 'feels', 'felt', 'complain', 'seem', 'please', 
+
+                  "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+                  ]
 
     cleaned_items = []
 
@@ -163,7 +165,7 @@ def remove_paraphrased(df):
 
     # Print all rows where score > 0.95
     for _, row in df_paraphrases.iterrows():
-        if (row["score"] > 0.91) & (row["score"] < 0.93):
+        if (row["score"] > 0.90) & (row["score"] < 0.93):
             idx1 = row['idx1'].astype(int)
             print(idx1, type(idx1))
             idx2 = row['idx2'].astype(int)
@@ -177,6 +179,18 @@ def remove_paraphrased(df):
     df = df[~df.index.isin(idx2_to_remove)]
 
     print(df.shape[0], 'rows remain')
+
+    return df
+
+def remove_assessment_name_from_item(df):
+    print('Removing assessment name from item...')
+
+    print("1",df)
+    for i, _ in df.iterrows():
+        print(df.at[i,'datadic'])
+        datadic = str(df.at[i,'datadic']).lower()
+        df.at[i,item_col] = df.at[i, item_col].replace(datadic, '')
+    print(df)
 
     return df
 
@@ -213,6 +227,9 @@ df = remove_domain_specific_stop_words(df)
 df = drop_duplicates(df)
 
 df = remove_paraphrased(df)
+
+print("0",df)
+df = remove_assessment_name_from_item(df)
 
 
 explore_functions.print_common_words(df[item_col], n=100)
